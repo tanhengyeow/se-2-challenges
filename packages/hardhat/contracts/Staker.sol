@@ -5,7 +5,27 @@ import "hardhat/console.sol";
 import "./ExampleExternalContract.sol";
 
 contract Staker {
+	// State variables
 	ExampleExternalContract public exampleExternalContract;
+	mapping(address => uint256) balances;
+	uint256 public constant threshold = 1 ether;
+	uint256 public deadline = block.timestamp + 30 seconds;
+	bool public isOpenForWithdraw = false;
+	bool public isExecuted = false;
+
+	// Events
+	event Stake(address indexed staker, uint256 indexed amount);
+
+	// Modifiers
+	modifier beforeDeadline() {
+		require(block.timestamp < deadline, "Deadline is over");
+		_;
+	}
+
+	modifier afterDeadline() {
+		require(block.timestamp >= deadline, "Deadline has not past");
+		_;
+	}
 
 	constructor(address exampleExternalContractAddress) {
 		exampleExternalContract = ExampleExternalContract(
@@ -13,31 +33,39 @@ contract Staker {
 		);
 	}
 
-	// Collect funds in a payable `stake()` function and track individual `balances` with a mapping:
-	// (Make sure to add a `Stake(address,uint256)` event and emit it for the frontend `All Stakings` tab to display)
-
-	/* Events */
-	event Stake(address indexed staker, uint256 indexed amount);
-
-	mapping(address => uint256) balances;
-	uint256 public constant threshold = 1 ether;
-
-	function stake() public payable {
+	function stake() public payable beforeDeadline {
 		uint256 stakeAmount = msg.value;
 		balances[msg.sender] += stakeAmount;
 		emit Stake(msg.sender, stakeAmount);
 	}
 
-	function getBalanceOfStaker(address staker) public view returns (uint256) {
+	function getBalance(address staker) public view returns (uint256) {
 		return balances[staker];
 	}
 
-	// After some `deadline` allow anyone to call an `execute()` function
-	// If the deadline has passed and the threshold is met, it should call `exampleExternalContract.complete{value: address(this).balance}()`
+	function execute() public afterDeadline {
+		require(isExecuted == false, "This function has been executed!");
+		if (address(this).balance >= threshold) {
+			exampleExternalContract.complete{ value: address(this).balance }();
+		} else {
+			isOpenForWithdraw = true;
+		}
+		isExecuted = true;
+	}
 
-	// If the `threshold` was not met, allow everyone to call a `withdraw()` function to withdraw their balance
+	function withdraw() public {
+		require(isOpenForWithdraw == true, "Not open for withdrawal");
+		require(balances[msg.sender] != 0, "No balance to withdraw");
+		payable(msg.sender).transfer(balances[msg.sender]);
+		balances[msg.sender] -= balances[msg.sender];
+	}
 
-	// Add a `timeLeft()` view function that returns the time left before the deadline for the frontend
+	function timeLeft() public view returns (uint256) {
+		if (block.timestamp >= deadline) {
+			return 0;
+		}
+		return deadline - block.timestamp;
+	}
 
 	// Add the `receive()` special function that receives eth and calls stake()
 }
