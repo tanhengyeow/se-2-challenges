@@ -7,9 +7,9 @@ import "./ExampleExternalContract.sol";
 contract Staker {
 	// State variables
 	ExampleExternalContract public exampleExternalContract;
-	mapping(address => uint256) balances;
+	mapping(address => uint256) public balances;
 	uint256 public constant threshold = 1 ether;
-	uint256 public deadline = block.timestamp + 30 seconds;
+	uint256 public deadline = block.timestamp + 72 seconds;
 	bool public isOpenForWithdraw = false;
 	bool public isExecuted = false;
 
@@ -27,10 +27,15 @@ contract Staker {
 		_;
 	}
 
+	// Functions
 	constructor(address exampleExternalContractAddress) {
 		exampleExternalContract = ExampleExternalContract(
 			exampleExternalContractAddress
 		);
+	}
+
+	receive() external payable {
+		stake();
 	}
 
 	function stake() public payable beforeDeadline {
@@ -66,6 +71,4 @@ contract Staker {
 		}
 		return deadline - block.timestamp;
 	}
-
-	// Add the `receive()` special function that receives eth and calls stake()
 }
