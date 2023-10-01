@@ -90,7 +90,22 @@ contract DEX {
 		uint256 xInput,
 		uint256 xReserves,
 		uint256 yReserves
-	) public pure returns (uint256 yOutput) {}
+	) public pure returns (uint256 yOutput) {
+		/**
+		 * Price formula calculation steps:
+		 * x * y = k
+		 * (x + dx)(y - dy) = k
+		 * (y - dy) = k / (x + dx)
+		 * dy = y - k / (x + dx)
+		 * dy = y - xy / (x + dx)
+		 * dy = (y * (x + dx) - xy) / (x + dx)
+		 * dy = (yx + ydx - xy) / (x + dx)
+		 * dy = ydx / (x + dx)
+		 * With fees:
+		 * dy = y * 0.997dx / (x + 0.997dx)
+		 */
+		return ((yReserves * 997 * xInput) / (xReserves * 1000 + 997 * xInput));
+	}
 
 	/**
 	 * @notice returns liquidity for a user.
