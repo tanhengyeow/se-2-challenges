@@ -154,7 +154,28 @@ contract DEX {
 	 * NOTE: user has to make sure to give DEX approval to spend their tokens on their behalf by calling approve function prior to this function call.
 	 * NOTE: Equal parts of both assets will be removed from the user's wallet with respect to the price outlined by the AMM.
 	 */
-	function deposit() public payable returns (uint256 tokensDeposited) {}
+	function deposit() public payable returns (uint256 tokensDeposited) {
+		require(msg.value != 0, "Not enough ether");
+
+		uint256 ethReserve = address(this).balance - msg.value;
+		uint256 tokenReserve = token.balanceOf(address(this));
+
+		uint256 liquidityMinted = (msg.value * totalLiquidity) / ethReserve;
+		liquidity[msg.sender] += liquidityMinted;
+		totalLiquidity += liquidityMinted;
+
+		// Same fraction of tokens required based on amount of ETH deposited
+		uint256 tokensRequired = (msg.value * tokenReserve) / ethReserve;
+		token.transferFrom(msg.sender, address(this), tokensRequired);
+
+		emit LiquidityProvided(
+			msg.sender,
+			tokensRequired,
+			msg.value,
+			liquidityMinted
+		);
+		return tokensRequired;
+	}
 
 	/**
 	 * @notice allows withdrawal of $BAL and $ETH from liquidity pool
@@ -162,5 +183,27 @@ contract DEX {
 	 */
 	function withdraw(
 		uint256 amount
-	) public returns (uint256 eth_amount, uint256 token_amount) {}
+	) public returns (uint256 eth_amount, uint256 token_amount) {
+		require(
+			amount <= liquidity[msg.sender],
+			"Amount exceeded liquidity provided"
+		);
+		uint256 ethReserve = address(this).balance;
+		uint256 tokenReserve = token.balanceOf(address(this));
+		uint256 tokensWithdrawn = (amount * tokenReserve) / totalLiquidity;
+		token.transfer(msg.sender, tokensWithdrawn);
+		uint256 ethWithdrawn = (amount * ethReserve) / totalLiquidity;
+		payable(msg.sender).transfer(ethWithdrawn);
+
+		liquidity[msg.sender] -= amount;
+		totalLiquidity -= amount;
+
+		emit LiquidityRemoved(
+			msg.sender,
+			tokensWithdrawn,
+			ethWithdrawn,
+			amount
+		);
+		return (ethWithdrawn, tokensWithdrawn);
+	}
 }
