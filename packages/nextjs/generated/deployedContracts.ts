@@ -5,7 +5,7 @@ const contracts = {
       name: "localhost",
       contracts: {
         Balloons: {
-          address: "0x49fd2BE640DB2910c2fAb69bB8531Ab6E76127ff",
+          address: "0xc0F115A19107322cFBf1cDBC7ea011C19EbDB4F8",
           abi: [
             {
               inputs: [],
@@ -285,7 +285,7 @@ const contracts = {
           ],
         },
         DEX: {
-          address: "0x4631BCAbD6dF18D94796344963cB60d44a4136b6",
+          address: "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75",
           abi: [
             {
               inputs: [

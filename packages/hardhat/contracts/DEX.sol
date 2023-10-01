@@ -120,14 +120,33 @@ contract DEX {
 	/**
 	 * @notice sends Ether to DEX in exchange for $BAL
 	 */
-	function ethToToken() public payable returns (uint256 tokenOutput) {}
+	function ethToToken() public payable returns (uint256 tokenOutput) {
+		require(msg.value != 0, "Not enough ether");
+		uint256 output = price(
+			msg.value,
+			address(this).balance - msg.value,
+			token.balanceOf(address(this))
+		);
+		token.transfer(msg.sender, output);
+		emit EthToTokenSwap(msg.sender, output, msg.value);
+		return output;
+	}
 
 	/**
 	 * @notice sends $BAL tokens to DEX in exchange for Ether
 	 */
-	function tokenToEth(
-		uint256 tokenInput
-	) public returns (uint256 ethOutput) {}
+	function tokenToEth(uint256 tokenInput) public returns (uint256 ethOutput) {
+		require(tokenInput != 0, "Not enough tokens");
+		uint256 output = price(
+			tokenInput,
+			token.balanceOf(address(this)),
+			address(this).balance
+		);
+		token.transferFrom(msg.sender, address(this), tokenInput);
+		payable(msg.sender).transfer(output);
+		emit TokenToEthSwap(msg.sender, tokenInput, output);
+		return output;
+	}
 
 	/**
 	 * @notice allows deposits of $BAL and $ETH to liquidity pool
