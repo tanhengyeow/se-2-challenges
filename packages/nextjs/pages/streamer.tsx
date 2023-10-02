@@ -115,7 +115,6 @@ const Streamer: NextPage = () => {
         return;
       }
       const updatedBalance = BigInt(`0x${data.updatedBalance}`);
-
       /*
        *  Checkpoint 3:
        *
@@ -127,6 +126,12 @@ const Streamer: NextPage = () => {
        */
       const existingVoucher = vouchers[clientAddress];
 
+      const packed = encodePacked(["uint256"], [updatedBalance]);
+      const hashed = keccak256(packed);
+      if (!verifyMessage({address: clientAddress, message: hashed, signature: data.signature})) {
+        console.log("Message not verified!")
+        return;
+      }
       // update our stored voucher if this new one is more valuable
       if (existingVoucher === undefined || updatedBalance < existingVoucher.updatedBalance) {
         setVouchers({ ...vouchers, [clientAddress]: { ...data, updatedBalance } });
@@ -342,13 +347,13 @@ const Streamer: NextPage = () => {
                     </div>
 
                     {/* Checkpoint 4: */}
-                    {/* <CashOutVoucherButton
+                    <CashOutVoucherButton
                       key={clientAddress}
                       clientAddress={clientAddress}
                       challenged={challenged}
                       closed={closed}
                       voucher={vouchers[clientAddress]}
-                    /> */}
+                    />
                   </div>
                 ))}
               </div>
